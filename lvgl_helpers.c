@@ -171,6 +171,10 @@ bool lvgl_spi_driver_init(int host,
         .sclk_io_num = sclk_pin,
         .quadwp_io_num = quadwp_pin,
         .quadhd_io_num = quadhd_pin,
+        .data4_io_num = -1,
+        .data5_io_num = -1,
+        .data6_io_num = -1,
+        .data7_io_num = -1,
         .max_transfer_sz = max_transfer_sz
     };
 

@@ -112,6 +112,8 @@ void disp_driver_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t *
 #elif defined CONFIG_LV_TFT_DISPLAY_CONTROLLER_PCD8544
     pcd8544_flush(drv, area, color_map);
 #endif
+
+    lv_disp_flush_ready(drv);
 }
 
 void disp_driver_rounder(lv_disp_drv_t * disp_drv, lv_area_t * area)
