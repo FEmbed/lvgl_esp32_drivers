@@ -68,8 +68,35 @@ void st7735s_init(void)
 #endif
 
     lcd_init_cmd_t init_cmds[]={
-		{ST7735_SWRESET, {0}, 0x80},         		// Software reset, 0 args, w/delay 150
-		{ST7735_SLPOUT, {0}, 0x80},                 // Out of sleep mode, 0 args, w/delay 500
+		{ST7735_SWRESET, {0}, 0x80},         		             // Software reset, 0 args, w/delay 150
+		{ST7735_SLPOUT, {0}, 0x80},                             // Out of sleep mode, 0 args, w/delay 500
+#if 0
+		{ST7735_FRMCTR1, {0x05, 0x3C, 0x3C}, 3},    // Frame rate ctrl - normal mode, 3 args: Rate = fosc/(1x2+40) * (LINE+2C+2D)
+		{ST7735_FRMCTR2, {0x05, 0x3C, 0x3C}, 3},    // Frame rate control - idle mode, 3 args:Rate = fosc/(1x2+40) * (LINE+2C+2D)
+		{ST7735_FRMCTR3, {0x05, 0x3C, 0x3C,0x05, 0x3C, 0x3C}, 6}, //Frame rate ctrl - partial mode, 6 args:Dot inversion mode. Line inversion mode
+		{ST7735_INVCTR, {0x03}, 1},                         // Display inversion ctrl, 1 arg, no delay:No inversion
+		{ST7735_PWCTR1, {0x28,0x08, 0x84}, 3},      // Power control, 3 args, no delay:-4.6V AUTO mode
+		{ST7735_PWCTR2, {0xC0}, 1},                         // Power control, 1 arg, no delay:VGH25 = 2.4C VGSEL = -10 VGH = 3 * AVDD
+		{ST7735_PWCTR3, {0x0D, 0x00}, 2},               // Power control, 2 args, no delay: Opamp current small, Boost frequency
+		{ST7735_PWCTR4, {0x8D,0x2A }, 2},               // Power control, 2 args, no delay: BCLK/2, Opamp current small & Medium low
+		{ST7735_PWCTR5, {0x8D, 0xEE}, 2},              // Power control, 2 args, no delay:
+		{ST7735_VMCTR1, {0x1A}, 1},                        // Power control, 1 arg, no delay:
+#if ST7735S_INVERT_COLORS == 1
+		{ST7735_INVON, {0x0}, 0},                     // set inverted mode
+#else
+ 		{ST7735_INVOFF, {0x00}, 0},                    // set non-inverted mode
+#endif
+		{ST7735_COLMOD, {0x05}, 1},               	// set color mode, 1 arg, no delay: 16-bit color
+		{ST7735_GMCTRP1, {0x04, 0x22, 0x07, 0x0A,
+			0x2E, 0x30, 0x25, 0x2A,
+			0x28, 0x26, 0x2E, 0x3A,
+			0x00, 0x01, 0x03, 0x13}, 16},           // 16 args, no delay:
+		{ST7735_GMCTRN1, {
+            0x04, 0x16, 0x06, 0x0D,
+			0x2D, 0x26, 0x23, 0x27,
+			0x27, 0x25, 0x2D, 0x3B,
+			0x00, 0x01, 0x04, 0x13}, 16},           // 16 args, no delay:
+#else
 		{ST7735_FRMCTR1, {0x01, 0x2C, 0x2D}, 3},    // Frame rate ctrl - normal mode, 3 args: Rate = fosc/(1x2+40) * (LINE+2C+2D)
 		{ST7735_FRMCTR2, {0x01, 0x2C, 0x2D}, 3},    // Frame rate control - idle mode, 3 args:Rate = fosc/(1x2+40) * (LINE+2C+2D)
 		{ST7735_FRMCTR3, {0x01, 0x2C, 0x2D,0x01, 0x2C, 0x2D}, 6}, //Frame rate ctrl - partial mode, 6 args:Dot inversion mode. Line inversion mode
@@ -94,8 +121,10 @@ void st7735s_init(void)
 			0x2E, 0x2C, 0x29, 0x2D,
 			0x2E, 0x2E, 0x37, 0x3F,
 			0x00, 0x00, 0x02, 0x10}, 16},           // 16 args, no delay:
+#endif
 		{ST7735_NORON, {0}, TFT_INIT_DELAY},       	// Normal display on, no args, w/delay 10 ms delay
-		{ST7735_DISPON, {0}, TFT_INIT_DELAY},       // Main screen turn on, no args w/delay 100 ms delay
+
+		//{ST7735_DISPON, {0}, TFT_INIT_DELAY},           // Main screen turn on, no args w/delay 100 ms delay
 		{0, {0}, 0xff}
     };
 
@@ -115,7 +144,6 @@ void st7735s_init(void)
 #endif
 
 	ESP_LOGI(TAG, "ST7735S initialization.");
-
 	//Send all the commands
 	uint16_t cmd = 0;
 	while (init_cmds[cmd].databytes!=0xff) {
@@ -126,6 +154,23 @@ void st7735s_init(void)
 		}
 		cmd++;
 	}
+    //Clear Memory before LED power on.
+    uint8_t x[4] = {0, 0, 0, 161};
+    uint8_t y[4] = {0, 0, 0, 0};
+    lv_color_t* mem = (lv_color_t *)heap_caps_malloc(132 * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    memset(mem, 0xff, 132 * sizeof(lv_color_t));
+    for(int i = 0; i< 162; i++) {
+        st7735s_send_cmd(0x2A);
+        st7735s_send_data(x, 4);
+        st7735s_send_cmd(0x2B);
+        y[1] = i, y[3] = i;
+        st7735s_send_data(y, 4);
+        st7735s_send_cmd(0x2C);
+        st7735s_send_data(mem, 132 * sizeof(lv_color_t));
+    }
+    free(mem);
+    st7735s_send_cmd(ST7735_DISPON);
+    vTaskDelay(100 / portTICK_RATE_MS);
 
 #if (CONFIG_LV_DISPLAY_ORIENTATION == 0) || (CONFIG_LV_DISPLAY_ORIENTATION == 1)
 	st7735s_portrait_mode = 1;
@@ -138,6 +183,7 @@ void st7735s_init(void)
 
 void st7735s_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t * color_map)
 {
+    (void) drv;
 	uint8_t data[4];
 
 	/*Column addresses*/
@@ -216,8 +262,10 @@ static void st7735s_set_orientation(uint8_t orientation)
         Portrait:  0xC8 = ST77XX_MADCTL_MX | ST77XX_MADCTL_MY | ST77XX_MADCTL_BGR
         Landscape: 0xA8 = ST77XX_MADCTL_MY | ST77XX_MADCTL_MV | ST77XX_MADCTL_BGR
         Remark: "inverted" is ignored here
+
+        Refer DS: 10.1.29 MADCTL (36h): Memory Data Access Control
     */
-    uint8_t data[] = {0xC8, 0x08, 0xA8, 0x68};
+    uint8_t data[] = {0xC0, 0x00, 0xA0, 0x70};
 
     ESP_LOGD(TAG, "0x36 command value: 0x%02X", data[orientation]);
 

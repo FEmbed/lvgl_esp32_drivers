@@ -34,7 +34,7 @@ extern "C" {
 // and are modified to fit to the M5StickC device, and are taken from
 //      https://github.com/adafruit/Adafruit-ST7735-Library
 //
-#define ST7735_GREENTAB160x128 // For 160 x 80 display (BGR, inverted, 26 / 1 offset)
+#define ST7735_GREENTAB160x128 // For 160 x 128 display (BGR, inverted, 2 / 1 offset)
 #define COLSTART            2
 #define ROWSTART            1
 
