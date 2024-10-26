@@ -50,8 +50,9 @@
  **********************/
 
 /* Interface and driver initialization */
-void lvgl_driver_init(void)
+void *lvgl_driver_init(void)
 {
+    void *bckl_handle = NULL;
     /* Since LVGL v8 LV_HOR_RES_MAX and LV_VER_RES_MAX are not defined, so
      * print it only if they are defined. */
 #if (LVGL_VERSION_MAJOR < 8)
@@ -106,9 +107,9 @@ void lvgl_driver_init(void)
 
     disp_spi_add_device(TFT_SPI_HOST);
 
-    disp_driver_init();
+    bckl_handle = disp_driver_init();
 #elif defined (CONFIG_LV_I2C_DISPLAY)
-    disp_driver_init();
+    bckl_handle = disp_driver_init();
 #else
 #error "No protocol defined for display controller"
 #endif
@@ -137,6 +138,7 @@ void lvgl_driver_init(void)
     #endif
 #else
 #endif
+    return bckl_handle;
 }
 
 
